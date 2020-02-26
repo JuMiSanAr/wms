@@ -666,7 +666,118 @@ class ClusterPicking(Component):
           generic way to share actions happening on transitions such as "close
           the batch"
         """
+        move_line = self.env["stock.move.line"].browse(move_line_id)
+        if not move_line.exists():
+            # TODO go to next line? (but then handle if it's the last one)
+            return self._response(next_state="start")
+        batch = move_line.picking_id.batch_id
+
+        self._create_stock_issue_inventory(move_line)
+
+        next_line = self._next_line_for_pick(batch)
+        if next_line:
+            return self._response(
+                next_state="start_line", data=self._data_for_next_move_line(batch)
+            )
+        lines = self._lines_for_picking_batch(batch)
+        packaged = lines.filtered(lambda x: x.result_package_id)
+        if packaged.ids == lines.ids:
+            destinations = lines.mapped("location_dest_id")
+            if len(destinations.ids) == 1:
+                return self._response_for_unload_all(batch)
+            else:
+                return self._response_for_unload_single(batch)
+        # TODO: handle closing of the batch
         return self._response()
+
+    # TODO: shall we move to a specific service for inventory?
+    def _create_stock_issue_inventory(self, move_line):
+        move = move_line.move_id
+        product = move_line.product_id
+        location = move_line.location_id
+        # unreserve will delete the line, collect its data before
+        inv_values = self._stock_issue_inventory_values(move_line)
+        control_inv_values = self._stock_issue_control_inventory_values(move_line)
+        # unassign move
+        move._do_unreserve()
+        # create inventory and start it
+        inventory = self.env["stock.inventory"].create(inv_values)
+        inventory.action_start()
+        # create control inventory if needed
+        if not self._control_inventory_exists(product, location):
+            self.env["stock.inventory"].create(control_inv_values)
+
+        # reassign move
+        # after a stock issue you have to try to reassign the move
+        # in case there is stock in another sublocation
+        move._action_assign()
+
+    def _stock_issue_inventory_values(self, move_line):
+        name = _(
+            "{picking.name} stock correction in location {location.name} "
+            "for {product_desc}"
+        ).format(
+            picking=move_line.picking_id,
+            location=move_line.location_dest_id,
+            product_desc=self._stock_issue_product_description(move_line),
+        )
+        reserved_qty = self._stock_issue_reserved_qty(
+            move_line.product_id, move_line.location_id
+        )
+        line_values = {
+            "location_id": move_line.location_id.id,
+            "product_id": move_line.product_id.id,
+            "prod_lot_id": move_line.lot_id.id,
+            "product_qty": reserved_qty - move_line.product_qty,
+        }
+        return {
+            "name": name,
+            "location_ids": [(4, move_line.location_dest_id.id)],
+            "product_ids": [(4, move_line.product_id.id)],
+            "line_ids": [(0, 0, line_values)],
+        }
+
+    def _stock_issue_control_inventory_values(self, move_line):
+        name = _(
+            "Control stock issue in location {location.name} " "for {product_desc}"
+        ).format(
+            location=move_line.location_dest_id,
+            product_desc=self._stock_issue_product_description(move_line),
+        )
+        return {
+            "name": name,
+            "location_ids": [(4, move_line.location_dest_id.id)],
+            "product_ids": [(4, move_line.product_id.id)],
+        }
+
+    def _stock_issue_reserved_qty(self, product, location):
+        domain = [
+            ("product_id", "=", product.id),
+            ("location_id", "=", location.id),
+            ("state", "=", "assigned"),
+        ]
+        res = self.env["stock.move"].read_group(
+            domain, ["product_qty:sum"], groupby=["product_id"]
+        )
+        return res[0]["product_qty"] if res else 0
+
+    def _control_inventory_exists(self, product, location, states=("draft", "confirm")):
+        line_model = self.env["stock.inventory.line"]
+        domain = [
+            ("inventory_id.state", "in", states),
+            ("product_id", "=", product.id),
+            ("location_id", "=", location.id),
+        ]
+        return bool(line_model.search_count(domain))
+
+    def _stock_issue_product_description(self, move_line):
+        parts = []
+        if move_line.package_id:
+            parts.append(move_line.package_id.name)
+        parts.append(move_line.product_id.name)
+        if move_line.lot_name:
+            parts.append(_("Lot: ") + move_line.lot_name)
+        return " - ".join(parts)
 
     def change_pack_lot(self, move_line_id, barcode):
         """Change the expected pack or the lot for a line
