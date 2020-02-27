@@ -692,13 +692,20 @@ class ClusterPicking(Component):
 
     # TODO: shall we move to a specific service for inventory?
     def _create_stock_issue_inventory(self, move_line):
-        # clone the move line to keep its data 
+        # clone the move line to keep its data
         # before it gets deleted by unreserve moves
-        move_line_data = move_line.read([
-            'product_id', 'location_id', 'location_dest_id',
-            'package_id', 'lot_id', 'picking_id'
-        ], load='classic_read')[0]
-        move_line_data.pop('id')
+        move_line_data = move_line.read(
+            [
+                "product_id",
+                "location_id",
+                "location_dest_id",
+                "package_id",
+                "lot_id",
+                "picking_id",
+            ],
+            load="classic_read",
+        )[0]
+        move_line_data.pop("id")
         # find all related moves
         moves = self._stock_issue_get_related_moves(move_line)
         # backup qty done
@@ -706,7 +713,7 @@ class ClusterPicking(Component):
         # unreserve moves
         moves._do_unreserve()
         # create the backup line after unreserve otherwise is flushed
-        backup_line = self.env['stock.move.line'].new()
+        backup_line = self.env["stock.move.line"].new()
         backup_line.update(move_line_data)
         # get total unreserved qty and create an inventory
         unreserved_qty = self._stock_issue_unreserved_qty(backup_line)
@@ -716,10 +723,11 @@ class ClusterPicking(Component):
         inventory.action_start()
         # create control inventory if needed
         if not self._control_inventory_exists(
-                backup_line.product_id, backup_line.location_id):
+            backup_line.product_id, backup_line.location_id
+        ):
             control_inv_values = self._stock_issue_control_inventory_values(backup_line)
             self.env["stock.inventory"].create(control_inv_values)
-        
+
         self._restore_qty_done_by_move(qty_done_by_move)
         # reassign move
         # after a stock issue you have to try to reassign the move
@@ -734,16 +742,14 @@ class ClusterPicking(Component):
 
     def _move_get_qty_done(self, move):
         # FIXME:`linked_move_operation_ids` does exists in v13
-        ops = move.mapped('linked_move_operation_ids.operation_id')
+        ops = move.mapped("linked_move_operation_ids.operation_id")
         for op in ops:
             _logger.debug(
-                'Old operation %s %s'
+                "Old operation %s %s"
                 % (
                     op,
                     [
-                        '{}: {}/{}'.format(
-                            plot.lot_id, plot.qty, plot.qty_todo
-                        )
+                        "{}: {}/{}".format(plot.lot_id, plot.qty, plot.qty_todo)
                         for plot in op.pack_lot_ids
                     ],
                 )
@@ -751,7 +757,7 @@ class ClusterPicking(Component):
         qty_done = {}
         for op in ops:
             done = qty_done.setdefault(op.location_id.id, {})
-            if op.product_id.tracking == 'none' and op.qty_done:
+            if op.product_id.tracking == "none" and op.qty_done:
                 # Set 0 as lot_id for products without tracking
                 done[0] = op.qty_done
                 continue
@@ -763,13 +769,11 @@ class ClusterPicking(Component):
     def _restore_qty_done_by_move(self, done_mapping):
         for move, qty_done_by_move in done_mapping.items():
             self._move_restore_qty_done(qty_done_by_move)
-    
+
     def _move_set_qty_done(self, move, qty_done):
         for location_id, lines in qty_done.items():
             for lot_id, qty in lines.items():
-                nop = new_ops.filtered(
-                    lambda op: op.location_id.id == location_id
-                )
+                nop = new_ops.filtered(lambda op: op.location_id.id == location_id)
                 # lot_id == 0 on products without tracking
                 if not lot_id:
                     nop.qty_done = qty
@@ -780,8 +784,8 @@ class ClusterPicking(Component):
                     if not nol:
                         raise UserError(
                             _(
-                                'Internal Error. '
-                                'Cannot match done lot in new pack operation'
+                                "Internal Error. "
+                                "Cannot match done lot in new pack operation"
                             )
                         )
                     nol.qty = qty
@@ -823,10 +827,12 @@ class ClusterPicking(Component):
 
     def _stock_issue_unreserved_qty(self, move_line):
         """Get whole qty available for given move line product."""
-        return self.env['stock.quant']._get_available_quantity(
-            move_line.product_id, move_line.location_id,
-            lot_id=move_line.lot_id, package_id=move_line.package_id,
-            strict=True
+        return self.env["stock.quant"]._get_available_quantity(
+            move_line.product_id,
+            move_line.location_id,
+            lot_id=move_line.lot_id,
+            package_id=move_line.package_id,
+            strict=True,
         )
 
     def _stock_issue_get_related_moves(self, move_line):
@@ -841,16 +847,18 @@ class ClusterPicking(Component):
         * qty_done is less than desired qty
         """
         domain = [
-            ("location_id", "=",  move_line.location_id.id),
+            ("location_id", "=", move_line.location_id.id),
             ("product_id", "=", move_line.product_id.id),
             ("package_id", "=", move_line.package_id.id),
             ("lot_id", "=", move_line.lot_id.id),
         ]
         # TODO: any better way to retrieve this? Maybe a pure select?
-        lines = self.env['stock.move.line'].search(domain).filtered(
-            lambda x: x.qty_done < x.product_qty 
+        lines = (
+            self.env["stock.move.line"]
+            .search(domain)
+            .filtered(lambda x: x.qty_done < x.product_qty)
         )
-        return lines.mapped('move_id')
+        return lines.mapped("move_id")
 
     def _control_inventory_exists(self, product, location, states=("draft", "confirm")):
         line_model = self.env["stock.inventory.line"]

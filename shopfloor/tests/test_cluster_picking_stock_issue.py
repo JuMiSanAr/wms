@@ -9,41 +9,20 @@ class ClusterPickingStockIssue(ClusterPickingCommonCase):
     def setUpClass(cls, *args, **kwargs):
         super().setUpClass(*args, **kwargs)
         # quants already existing are from demo data
-        loc_ids = (
-            cls.stock_location.id,
-            cls.shelf1.id, cls.shelf2.id)
-        cls.env["stock.quant"].search(
-            [("location_id", "in", loc_ids)]
-        ).unlink()
-        cls.shelf_Z = cls.shelf2.copy({
-            'name': 'Shelf Z',
-            'barcode': 'SHELF-Z',
-        })
-        cls._update_qty_in_location(
-            cls.shelf1, cls.product_a, 3
-        )
-        cls._update_qty_in_location(
-            cls.shelf2, cls.product_a, 50
-        )
-        cls._update_qty_in_location(
-            cls.shelf_Z, cls.product_a, 100
-        )
+        loc_ids = (cls.stock_location.id, cls.shelf1.id, cls.shelf2.id)
+        cls.env["stock.quant"].search([("location_id", "in", loc_ids)]).unlink()
+        cls.shelf_Z = cls.shelf2.copy({"name": "Shelf Z", "barcode": "SHELF-Z"})
+        cls._update_qty_in_location(cls.shelf1, cls.product_a, 3)
+        cls._update_qty_in_location(cls.shelf2, cls.product_a, 50)
+        cls._update_qty_in_location(cls.shelf_Z, cls.product_a, 100)
         cls.batch = cls._create_picking_batch(
             [
-                [
-                    cls.BatchProduct(product=cls.product_a, quantity=10),
-                ],
-                [
-                    cls.BatchProduct(product=cls.product_a, quantity=20),
-                ],
+                [cls.BatchProduct(product=cls.product_a, quantity=10)],
+                [cls.BatchProduct(product=cls.product_a, quantity=20)],
             ]
         )
         cls.batch1 = cls._create_picking_batch(
-            [
-                [
-                    cls.BatchProduct(product=cls.product_a, quantity=30),
-                ],
-            ]
+            [[cls.BatchProduct(product=cls.product_a, quantity=30)]]
         )
         # TODO
         # put the same product in the same picking in 2 diff locations
@@ -54,10 +33,10 @@ class ClusterPickingStockIssue(ClusterPickingCommonCase):
         # a move line w/ qty done == qty3
 
         # select both batches (we need the pickings to be confirmed/assigned)
-        # 
+        #
         # TEST
         # use the line in location Y and trigger stock issue
-        # result: 
+        # result:
         # 1. inv line w/ qty 27
         # 1a. in location Y as we created the inventory we should not have any move line for prod A
         # and make sure that loc Z has 197 available
@@ -68,7 +47,7 @@ class ClusterPickingStockIssue(ClusterPickingCommonCase):
         # if this happens consider doing the same thing as here
         # https://github.com/camptocamp/alcyon_odoo/blob/master/odoo/local-src/stock_operation_recompute/models/stock_move.py#L24
         # to restore the qty done
-        # 
+        #
 
     def _stock_issue(self, line, next_line=None):
         response = self.service.dispatch(
@@ -104,7 +83,7 @@ class ClusterPickingStockIssue(ClusterPickingCommonCase):
 
     def _check_qty(self, prod, loc, expected_qty):
         self.assertEqual(
-            self.env['stock.quant']._get_available_quantity(prod, loc), expected_qty
+            self.env["stock.quant"]._get_available_quantity(prod, loc), expected_qty
         )
 
     def test_stock_issue(self):
@@ -122,11 +101,11 @@ class ClusterPickingStockIssue(ClusterPickingCommonCase):
         )
         # DEVs: to check all move lines here
         # self.batch.mapped('picking_ids.move_line_ids').read([
-        # 'move_id', 'product_qty', 'qty_done', 
+        # 'move_id', 'product_qty', 'qty_done',
         # 'location_id', 'location_dest_id', 'picking_id'
         # ])
-        # 
-        batch1_lines = self.batch.mapped('picking_ids.move_line_ids')
+        #
+        batch1_lines = self.batch.mapped("picking_ids.move_line_ids")
         # As in location 1 we have only 3 products available
         # we'll have 2 lines to satisfy the picking w/ 20.0 prods:
         # 3 coming from shelf 1, 17 coming from shelf 2
@@ -152,7 +131,7 @@ class ClusterPickingStockIssue(ClusterPickingCommonCase):
         # make sure the qty done on line3 is still there
         # FIXME: this fails ATM because the line is deleted
         self.assertEqual(line3.qty_done, 3.0)
-        
+
         # # work on product B
         # lineB = self.batch.picking_ids[0].move_line_ids.filtered(
         #     lambda x: x.product_id == self.product_b
