@@ -692,27 +692,101 @@ class ClusterPicking(Component):
 
     # TODO: shall we move to a specific service for inventory?
     def _create_stock_issue_inventory(self, move_line):
-        move = move_line.move_id
-        product = move_line.product_id
-        location = move_line.location_id
-        # unreserve will delete the line, collect its data before
-        inv_values = self._stock_issue_inventory_values(move_line)
-        control_inv_values = self._stock_issue_control_inventory_values(move_line)
-        # unassign move
-        move._do_unreserve()
+        # clone the move line to keep its data 
+        # before it gets deleted by unreserve moves
+        move_line_data = move_line.read([
+            'product_id', 'location_id', 'location_dest_id',
+            'package_id', 'lot_id', 'picking_id'
+        ], load='classic_read')[0]
+        move_line_data.pop('id')
+        # find all related moves
+        moves = self._stock_issue_get_related_moves(move_line)
+        # backup qty done
+        qty_done_by_move = self._backup_qty_done_by_move(moves)
+        # unreserve moves
+        moves._do_unreserve()
+        # create the backup line after unreserve otherwise is flushed
+        backup_line = self.env['stock.move.line'].new()
+        backup_line.update(move_line_data)
+        # get total unreserved qty and create an inventory
+        unreserved_qty = self._stock_issue_unreserved_qty(backup_line)
+        inv_values = self._stock_issue_inventory_values(backup_line, unreserved_qty)
         # create inventory and start it
         inventory = self.env["stock.inventory"].create(inv_values)
         inventory.action_start()
         # create control inventory if needed
-        if not self._control_inventory_exists(product, location):
+        if not self._control_inventory_exists(
+                backup_line.product_id, backup_line.location_id):
+            control_inv_values = self._stock_issue_control_inventory_values(backup_line)
             self.env["stock.inventory"].create(control_inv_values)
-
+        
+        self._restore_qty_done_by_move(qty_done_by_move)
         # reassign move
         # after a stock issue you have to try to reassign the move
         # in case there is stock in another sublocation
-        move._action_assign()
+        moves._action_assign()
 
-    def _stock_issue_inventory_values(self, move_line):
+    def _backup_qty_done_by_move(self, moves):
+        qty_done_by_move = {}
+        for move in moves:
+            qty_done_by_move[move] = self._move_get_qty_done(move)
+        return qty_done_by_move
+
+    def _move_get_qty_done(self, move):
+        # FIXME:`linked_move_operation_ids` does exists in v13
+        ops = move.mapped('linked_move_operation_ids.operation_id')
+        for op in ops:
+            _logger.debug(
+                'Old operation %s %s'
+                % (
+                    op,
+                    [
+                        '{}: {}/{}'.format(
+                            plot.lot_id, plot.qty, plot.qty_todo
+                        )
+                        for plot in op.pack_lot_ids
+                    ],
+                )
+            )
+        qty_done = {}
+        for op in ops:
+            done = qty_done.setdefault(op.location_id.id, {})
+            if op.product_id.tracking == 'none' and op.qty_done:
+                # Set 0 as lot_id for products without tracking
+                done[0] = op.qty_done
+                continue
+            for l in op.pack_lot_ids:
+                if l.qty:
+                    done[l.lot_id.id] = l.qty
+        return qty_done
+
+    def _restore_qty_done_by_move(self, done_mapping):
+        for move, qty_done_by_move in done_mapping.items():
+            self._move_restore_qty_done(qty_done_by_move)
+    
+    def _move_set_qty_done(self, move, qty_done):
+        for location_id, lines in qty_done.items():
+            for lot_id, qty in lines.items():
+                nop = new_ops.filtered(
+                    lambda op: op.location_id.id == location_id
+                )
+                # lot_id == 0 on products without tracking
+                if not lot_id:
+                    nop.qty_done = qty
+                else:
+                    nol = nop.pack_lot_ids.filtered(
+                        lambda line: line.lot_id.id == lot_id
+                    )
+                    if not nol:
+                        raise UserError(
+                            _(
+                                'Internal Error. '
+                                'Cannot match done lot in new pack operation'
+                            )
+                        )
+                    nol.qty = qty
+
+    def _stock_issue_inventory_values(self, move_line, line_qty):
         name = _(
             "{picking.name} stock correction in location {location.name} "
             "for {product_desc}"
@@ -721,14 +795,11 @@ class ClusterPicking(Component):
             location=move_line.location_dest_id,
             product_desc=self._stock_issue_product_description(move_line),
         )
-        reserved_qty = self._stock_issue_reserved_qty(
-            move_line.product_id, move_line.location_id
-        )
         line_values = {
             "location_id": move_line.location_id.id,
             "product_id": move_line.product_id.id,
             "prod_lot_id": move_line.lot_id.id,
-            "product_qty": reserved_qty - move_line.product_qty,
+            "product_qty": line_qty,
         }
         return {
             "name": name,
@@ -750,16 +821,36 @@ class ClusterPicking(Component):
             "product_ids": [(4, move_line.product_id.id)],
         }
 
-    def _stock_issue_reserved_qty(self, product, location):
-        domain = [
-            ("product_id", "=", product.id),
-            ("location_id", "=", location.id),
-            ("state", "=", "assigned"),
-        ]
-        res = self.env["stock.move"].read_group(
-            domain, ["product_qty:sum"], groupby=["product_id"]
+    def _stock_issue_unreserved_qty(self, move_line):
+        """Get whole qty available for given move line product."""
+        return self.env['stock.quant']._get_available_quantity(
+            move_line.product_id, move_line.location_id,
+            lot_id=move_line.lot_id, package_id=move_line.package_id,
+            strict=True
         )
-        return res[0]["product_qty"] if res else 0
+
+    def _stock_issue_get_related_moves(self, move_line):
+        """Lookup for all the moves that match given move line.
+
+        Match by:
+
+        * product
+        * location
+        * package
+        * lot
+        * qty_done is less than desired qty
+        """
+        domain = [
+            ("location_id", "=",  move_line.location_id.id),
+            ("product_id", "=", move_line.product_id.id),
+            ("package_id", "=", move_line.package_id.id),
+            ("lot_id", "=", move_line.lot_id.id),
+        ]
+        # TODO: any better way to retrieve this? Maybe a pure select?
+        lines = self.env['stock.move.line'].search(domain).filtered(
+            lambda x: x.qty_done < x.product_qty 
+        )
+        return lines.mapped('move_id')
 
     def _control_inventory_exists(self, product, location, states=("draft", "confirm")):
         line_model = self.env["stock.inventory.line"]
