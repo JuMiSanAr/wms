@@ -37,53 +37,42 @@ Vue.component("manual-select", {
     methods: {
         _initSelected() {
             const initValue = this.opts.initValue;
-            let selected = null;
+            let selected = false;
             if (this.opts.multiple) {
                 selected = initValue ? [initValue] : [];
                 if (this.opts.initSelectAll) {
                     selected = [];
                     _.each(this.records, function(rec, index) {
-                        selected.push(index);
+                        selected.push(rec.id);
                     });
                 }
             } else {
-                selected = initValue ? initValue : null;
+                selected = initValue ? initValue : false;
             }
             return selected;
         },
-        handleAction(event_name, data) {
-            // TODO: use `$root.trigger` and replace handling of select event
-            // everywhere.
-            if (this.opts.bubbleUpAction) {
-                this.$parent.$emit(event_name, data);
-            } else {
-                this.$emit(event_name, data);
-            }
-        },
-    },
-    watch: {
-        // eslint-disable-next-line no-unused-vars
-        selected: function(val, oldVal) {
-            if (_.isUndefined(val)) {
-                // Unselected
-                this.handleAction("select", null);
-                return;
-            }
+        _getSelected() {
             const self = this;
             let selected_records = null;
             if (this.opts.multiple) {
-                selected_records = [];
-                _.each(this.records, function(rec, index) {
-                    if (index in val) selected_records.push(rec);
-                });
+                selected_records = _.filter(
+                    self.records, function(o) { return _.has(self.selected, o.id); }
+                );
             } else {
-                selected_records = self.records[val];
+                selected_records = _.head(_.filter(
+                    self.records, function(o) { return self.selected === o.id; }
+                ));
             }
             console.log("SELECTED", selected_records);
-            if (!this.opts.showActions) {
-                // Bubble up select action (handy when no action used)
-                this.handleAction("select", selected_records);
+            return selected_records
+        },
+        handleSelect() {
+            if(!this.opts.showActions){
+                this.$root.trigger('select', this._getSelected())
             }
+        },
+        handleAction(action) {
+            this.$root.trigger('select', this._getSelected())
         },
     },
     computed: {
@@ -138,44 +127,40 @@ Vue.component("manual-select", {
     <div :class="klass">
         <v-card outlined>
             <v-list v-if="has_records">
-                <v-list-item-group :multiple="opts.multiple" color="success" v-model="selected">
-                    <div class="select-group" v-for="group in selectable" :key="group.key">
-                        <v-card-title v-if="group.title">{{ group.title }}</v-card-title>
-                        <div class="list-item-wrapper" v-for="(rec, index) in group.records"">
-                            <v-list-item :key="index">
-                                <template v-slot:default="{ active, toggle }">
-                                    <v-list-item-content>
-                                        <component
-                                            :is="opts.list_item_component"
-                                            :options="list_item_options"
-                                            :record="rec"
-                                            :index="index"
-                                            :count="group.records.length"
-                                            />
-                                    </v-list-item-content>
-                                    <!--v-list-item-action>
-                                     FIXME: this triggers the change 3 times and makes impossible to handle event subscribers properly
-                                        <v-checkbox
-                                            :input-value="active"
-                                            :true-value="index"
-                                            color="accent-4"
-                                            @click="toggle"
-                                        ></v-checkbox>
-                                    </v-list-item-action-->
-                                </template>
-                            </v-list-item>
-                            <div class="extra" v-if="opts.list_item_extra_component">
+                <div class="select-group" v-for="(group, gindex) in selectable" :key="gindex">
+                    <v-card-title v-if="group.title">{{ group.title }}</v-card-title>
+                    <div class="list-item-wrapper" v-for="(rec, index) in group.records"">
+                        <v-list-item :key="gindex + '-' + index">
+                            <v-list-item-content>
                                 <component
-                                    :is="opts.list_item_extra_component"
+                                    :is="opts.list_item_component"
                                     :options="list_item_options"
                                     :record="rec"
                                     :index="index"
                                     :count="group.records.length"
                                     />
-                            </div>
+                            </v-list-item-content>
+                            <v-list-item-action>
+                                <v-checkbox
+                                    v-model="selected"
+                                    :input-value="rec.id"
+                                    :true-value="rec.id"
+                                    :value="rec.id"
+                                    @change="handleSelect()"
+                                    ></v-checkbox>
+                            </v-list-item-action>
+                        </v-list-item>
+                        <div class="extra" v-if="opts.list_item_extra_component">
+                            <component
+                                :is="opts.list_item_extra_component"
+                                :options="list_item_options"
+                                :record="rec"
+                                :index="index"
+                                :count="group.records.length"
+                                />
                         </div>
                     </div>
-                </v-list-item-group>
+                </div>
             </v-list>
             <v-alert tile type="error" v-if="!has_records">
                 No record found.
@@ -183,12 +168,12 @@ Vue.component("manual-select", {
         </v-card>
         <v-row class="actions bottom-actions" v-if="has_records && opts.showActions">
             <v-col>
-                <v-btn depressed color="success" @click="handleAction('select', selected)">
+                <v-btn depressed color="success" @click="handleAction('submit')">
                     Start
                 </v-btn>
             </v-col>
             <v-col>
-                <v-btn depressed color="default" @click="handleAction('back')" class="float-right">
+                <v-btn depressed color="default" @click="$root.trigger('back')" class="float-right">
                     Back
                 </v-btn>
             </v-col>
