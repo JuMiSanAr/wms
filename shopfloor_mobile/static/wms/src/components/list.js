@@ -114,7 +114,7 @@ Vue.component("list-item", {
         },
     },
     template: `
-    <v-list-item-content
+    <v-list-item-content>
         <v-list-item-title v-text="record[options.key_title]"></v-list-item-title>
         <div class="details">
             <div class="field-detail" v-for="(field, index) in options.fields">
