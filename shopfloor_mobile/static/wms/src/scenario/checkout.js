@@ -8,6 +8,7 @@ export var Checkout = Vue.component("checkout", {
     template: `
         <Screen :title="screen_info.title" :klass="screen_info.klass">
             <!-- FOR DEBUG -->
+            <!-- {{ current_state_key }} -->
             {{ current_state_key }}
             <template v-slot:header>
                 <user-information
@@ -110,6 +111,20 @@ export var Checkout = Vue.component("checkout", {
                 <checkout-picking-change-qty
                     :picking="state.data.picking"
                     />
+                <div class="qty">
+                    <input-number-spinner
+                        v-on:input="state.on_qty_update"
+                        :init_value="state.data.record.qty_done"
+                        class="mb-2"
+                        />
+                </div>
+                <div class="button-list button-vertical-list full">
+                    <v-row align="center">
+                        <v-col class="text-center" cols="12">
+                            <v-btn depressed color="primary" @click="$root.trigger('qty_change_confirm')">Confirm</v-btn>
+                        </v-col>
+                    </v-row>
+                </div>
             </div>
             <div v-if="state_is('change_packaging')">
                 <checkout-picking-detail-select
@@ -141,18 +156,14 @@ export var Checkout = Vue.component("checkout", {
         },
     },
     // FIXME: just for dev
-    // Mmounted: function () {
-    //     // TEST summary only
-    //     // this.initial_state_key = 'summary'
-    //     // this.set_erp_data('data', {
-    //     //     'summary': demotools.makePicking({}, {"lines_count": 5, "line_random_pack": true}),
-    //     // });
-    //     // TEST select_pack only
-    //     this.initial_state_key = 'select_pack'
-    //     this.set_erp_data('data', demotools.get_case(this.usage).select_line.data);
-    //     // this.initial_state_key = 'select_dest_package'
-    //     // this.set_erp_data('data', demotools.get_case(this.usage).select_line.data);
-    // },
+    mounted: function () {
+        // TEST force state and data
+        const state = 'select_package';
+        const dcase = demotools.get_case(this.usage);
+        const data = dcase['select_package'].data[state];
+        this.state_set_data(data, state);
+        this.go_state(state)
+    },
     methods: {
         record_by_id: function(records, _id) {
             // TODO: double check when the process is done if this is still needed or not.
@@ -230,9 +241,7 @@ export var Checkout = Vue.component("checkout", {
     data: function() {
         return {
             usage: "checkout",
-            // initial_state_key: "select_document",
-            initial_state_key: "select_pack", // FIXME: just for dev
-            // initial_state_key: "select_dest_package",  // FIXME: just for dev
+            initial_state_key: "select_document",
             states: {
                 select_document: {
                     display_info: {
@@ -320,6 +329,7 @@ export var Checkout = Vue.component("checkout", {
                             })
                         );
                     },
+                    // FIXME: is not to change qty
                     on_edit_package: (pkg) => {
                         this.state_set_data({"package": pkg}, change_quantity);
                         this.go_state("change_quantity");
@@ -338,16 +348,24 @@ export var Checkout = Vue.component("checkout", {
                         title: "Select package",
                         scan_placeholder: "Scan package",
                     },
-                    on_qty_update: qty => {
-                        this.scan_destination_qty = parseInt(qty);
+                    events: {
+                        qty_edit: "on_qty_edit",
+                        select: "on_select",
+                        back: "on_back",
+                    },
+                    enter: () => {
+                        this.state.data.selected = this.state.data.selected_move_lines
                     },
                     on_scan: scanned => {
                         this.go_state(
                             "wait_call",
-                            this.odoo.call("scan_pack_action", {
-                                move_line_id: this.state.data.id,
+                            this.odoo.call("scan_package_action", {
+                                picking_id: this.state.data.picking.id,
+                                selected_line_ids: _.map(
+                                    this.state.data.selected,
+                                    _.property("id")
+                                ),
                                 barcode: scanned.text,
-                                quantity: this.scan_destination_qty,
                             })
                         );
                     },
@@ -357,11 +375,15 @@ export var Checkout = Vue.component("checkout", {
                         }
                         // keep selected lines on the state
                         this.state.data.selected = selected;
+                        console.log("selected", selected);
+
                         // Must pick unselected line and reset its qty
                         const unselected = _.head(
                             _.difference(this.state.data.selected_move_lines, selected)
                         );
-                        if (unselected) {
+                        console.log("unselected", unselected);
+                        // if (unselected) {
+                        if (false) {
                             console.log("unselected", unselected);
                             this.go_state(
                                 "wait_call",
@@ -370,6 +392,17 @@ export var Checkout = Vue.component("checkout", {
                                 })
                             );
                         }
+                    },
+                    on_qty_edit: record => {
+                        this.state_set_data({
+                            picking: this.state.data.picking,
+                            record: record,
+                            selected_line_ids: _.map(
+                                this.state.data.selected,
+                                _.property("id")
+                            ),
+                        }, "change_quantity");
+                        this.go_state("change_quantity");
                     },
                     on_new_pack: () => {
                         this.go_state(
@@ -412,20 +445,23 @@ export var Checkout = Vue.component("checkout", {
                         title: "Change quantity",
                     },
                     events: {
-                        qty_update: "on_qty_update",
+                        qty_change_confirm: "on_confirm",
+                        back: "on_back",
                     },
                     on_back: () => {
-                        this.go_state("select_line");
+                        this.go_state("select_package");
                         this.reset_notification();
                     },
-                    on_confirm: qty => {
+                    on_qty_update: (qty) => {
                         console.log(qty);
+                        this.state.data.qty = qty
                     },
-                    on_qty_update: () => {
+                    on_confirm: () => {
                         this.go_state(
                             "wait_call",
                             this.odoo.call("set_custom_qty", {
-                                move_line_id: this.state.data.id,
+                                picking_id: this.state.data.picking.id,
+                                selected_line_ids: this.state.data.selected_line_ids,
                                 quantity: this.state.data.qty,
                             })
                         );

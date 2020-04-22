@@ -27,12 +27,14 @@ Vue.component("manual-select", {
     },
     data: function() {
         return {
+            initialized: false,
             selected: null,
         };
     },
     created() {
         // Relies on properties
         this.selected = this._initSelected();
+        this.initialized = true;
     },
     methods: {
         _initSelected() {
@@ -42,7 +44,7 @@ Vue.component("manual-select", {
                 selected = initValue ? [initValue] : [];
                 if (this.opts.initSelectAll) {
                     selected = [];
-                    _.each(this.records, function(rec, index) {
+                    _.each(this.records, function(rec, __) {
                         selected.push(rec.id);
                     });
                 }
@@ -56,23 +58,44 @@ Vue.component("manual-select", {
             let selected_records = null;
             if (this.opts.multiple) {
                 selected_records = _.filter(
-                    self.records, function(o) { return _.has(self.selected, o.id); }
+                    self.records, function(o) { return self.selected.includes(o.id); }
                 );
             } else {
                 selected_records = _.head(_.filter(
                     self.records, function(o) { return self.selected === o.id; }
                 ));
             }
-            console.log("SELECTED", selected_records);
             return selected_records
         },
-        handleSelect() {
+        _updateValue(value, remove) {
+            if (this.opts.multiple) {
+                if (remove) {
+                    _.pull(this.selected, value);
+                } else {
+                    this.selected.push(value);
+                }
+            } else {
+                // eslint-disable-next-line no-lonely-if
+                if (remove) {
+                    this.selected = false
+                } else {
+                    this.selected = value
+                }
+            }
+        },
+        handleSelect(rec, event) {
+            const elem = event.target;
+            this._updateValue(parseInt(elem.value, 10), !elem.checked);
+            $(elem).closest('.list-item-wrapper').toggleClass('active', elem.checked);
             if(!this.opts.showActions){
                 this.$root.trigger('select', this._getSelected())
             }
         },
         handleAction(action) {
             this.$root.trigger('select', this._getSelected())
+        },
+        is_selected(rec) {
+            return this.opts.multiple ? this.selected.includes(rec.id) : this.selected === rec.id
         },
     },
     computed: {
@@ -129,8 +152,8 @@ Vue.component("manual-select", {
             <v-list v-if="has_records">
                 <div class="select-group" v-for="(group, gindex) in selectable" :key="gindex">
                     <v-card-title v-if="group.title">{{ group.title }}</v-card-title>
-                    <div class="list-item-wrapper" v-for="(rec, index) in group.records"">
-                        <v-list-item :key="gindex + '-' + index">
+                    <div :class="'list-item-wrapper' + (is_selected(rec) ? ' active' : '')" v-for="(rec, index) in group.records"">
+                        <v-list-item :key="gindex + '-' + index" :id="gindex + '-' + index">
                             <v-list-item-content>
                                 <component
                                     :is="opts.list_item_component"
@@ -141,13 +164,15 @@ Vue.component("manual-select", {
                                     />
                             </v-list-item-content>
                             <v-list-item-action>
-                                <v-checkbox
-                                    v-model="selected"
+                                <input 
+                                    class="my-checkbox"
+                                    type="checkbox"
                                     :input-value="rec.id"
                                     :true-value="rec.id"
                                     :value="rec.id"
-                                    @change="handleSelect()"
-                                    ></v-checkbox>
+                                    :checked="is_selected(rec)"
+                                    @click="handleSelect(rec, $event)"
+                                    />
                             </v-list-item-action>
                         </v-list-item>
                         <div class="extra" v-if="opts.list_item_extra_component">

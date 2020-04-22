@@ -95,6 +95,7 @@ const app = new Vue({
             if (this.global_state_key) {
                 event_name = this.global_state_key + ":" + event_name;
             }
+            console.log(event_name, data)
             this.event_hub.$emit(event_name, data);
         },
     },

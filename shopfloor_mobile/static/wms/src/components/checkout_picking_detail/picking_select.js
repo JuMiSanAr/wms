@@ -38,6 +38,10 @@ Vue.component("checkout-select-line-content", {
   `,
 });
 
+
+        // <v-list-item-action>
+        //     
+        // </v-list-item-action>
 Vue.component("checkout-select-package-content", {
     props: {
         record: Object,
@@ -49,6 +53,7 @@ Vue.component("checkout-select-package-content", {
     <div>
         <div :class="record.package_dest ? 'has-pack' : 'no-pack'">
             <span>{{ record.product.display_name }}</span>
+            <edit-action class="float-right" :record="record" :click_event="'qty_edit'" />
             <div class="lot" v-if="record.lot">
                 <span class="label">Lot:</span> <span>{{ record.lot.name }}</span>
             </div>
