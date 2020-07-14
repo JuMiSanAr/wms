@@ -15,24 +15,30 @@ export var LocationContentTransfer = Vue.component("location-content-transfer", 
                 v-on:found="on_scan"
                 :input_placeholder="search_input_placeholder"
                 />
-            <div v-if="state_in(['start_single', 'scan_destination']) && state.data.move_line">
-                <detail-picking
+            <div v-if="state_in(['start_single', 'scan_destination']) && current_context().has_records">
+                <!-- TODO: no picking on pkg level yet -->
+                <!--detail-picking
                     :key="make_state_component_key(['picking'])"
                     :record="state.data.move_line.picking"
                     :options="{main: true}"
-                    />
-                <batch-picking-line-detail
-                    :line="state.data.move_line"
-                    :article-scanned="state_is('scan_destination')"
-                    :show-qty-picker="state_is('scan_destination')"
-                    />
+                    /--->
+
+                <div v-for="rec in current_context().records">
+                    <batch-picking-line-detail
+                        :line="rec"
+                        :key="make_state_component_key(['detail-move-line', rec.id])"
+                        :article-scanned="state_is('scan_destination')"
+                        :show-qty-picker="state_is('scan_destination')"
+                        :default-destination-key="'location_dest'"
+                        />
+                </div>
             </div>
             <div v-if="state_is('scan_destination_all')">
                 <item-detail-card
-                    v-for="move_line in state.data.move_lines"
-                    :key="make_state_component_key(['detail-move-line', move_line.id])"
-                    :record="move_line"
-                    :options="move_line_detail_list_options(move_line)"
+                    v-for="rec in current_context().records"
+                    :key="make_state_component_key(['detail-move-line', rec.id])"
+                    :record="rec"
+                    :options="move_line_detail_list_options(rec)"
                     />
             </div>
             <div class="button-list button-vertical-list full">
@@ -76,9 +82,40 @@ export var LocationContentTransfer = Vue.component("location-content-transfer", 
         has_picking: function() {
             return !_.isEmpty(this.current_picking());
         },
+        /**
+         * As we can get `move_line` or `package_level` for single items
+         * and `move_lines` or `package_levels` for multiple items,
+         * this function tries to make such data homogenous.
+         * We'll work alway with multiple records and loop on them.
+         */
+        current_context: function() {
+            const data = this.state.data;
+            let res = {
+                has_records: true,
+                records: _.result(data, "move_lines"),
+                _multi: true,
+                _type: "move_line",
+            };
+            if (_.isEmpty(res.records) && data.move_line) {
+                res.records = [data.move_line];
+                res._multi = false;
+            }
+            if (_.isEmpty(res.records) && data.package_levels) {
+                res.records = data.package_levels;
+                res._type = "pkg_level";
+            }
+            if (_.isEmpty(res.records) && data.package_level) {
+                res.records = [data.package_level];
+                res._type = "pkg_level";
+            }
+            res.has_records = res.records.length > 0;
+            return res;
+        },
         move_line_detail_list_options: function(move_line) {
             return this.utils.misc.move_line_product_detail_options(move_line, {
+                loud_labels: true,
                 fields_blacklist: ["product.qty_available"],
+                fields: [{path: "location_src.name", label: "From"}],
             });
         },
     },
@@ -86,20 +123,12 @@ export var LocationContentTransfer = Vue.component("location-content-transfer", 
         const self = this;
         return {
             usage: "location_content_transfer",
-            initial_state_key: "start",
+            initial_state_key: "scan_location",
             states: {
                 init: {
                     enter: () => {
                         this.state_reset_data();
                         this.wait_call(this.odoo.call("start_or_recover"));
-                    },
-                },
-                start: {
-                    display_info: {
-                        scan_placeholder: "Scan pack / product / lot",
-                    },
-                    on_scan: scanned => {
-                        this.wait_call(this.odoo.call("TODO", {barcode: scanned.text}));
                     },
                 },
                 scan_location: {
@@ -108,7 +137,9 @@ export var LocationContentTransfer = Vue.component("location-content-transfer", 
                         scan_placeholder: "Scan location",
                     },
                     on_scan: scanned => {
-                        this.wait_call(this.odoo.call("TODO", {barcode: scanned.text}));
+                        this.wait_call(
+                            this.odoo.call("scan_location", {barcode: scanned.text})
+                        );
                     },
                 },
                 scan_destination_all: {
@@ -117,14 +148,17 @@ export var LocationContentTransfer = Vue.component("location-content-transfer", 
                         scan_placeholder: "Scan location",
                     },
                     on_scan: scanned => {
+                        const data = this.state.data;
                         this.wait_call(
                             this.odoo.call("set_destination_all", {
+                                location_id: data.location.id,
                                 barcode: scanned.text,
+                                confirmation: data.confirmation_required,
                             })
                         );
                     },
                     on_split_by_line: () => {
-                        const location = this.state.data.move_lines[0].location_src;
+                        const location = this.state.data.location;
                         this.wait_call(
                             this.odoo.call("go_to_single", {location_id: location.id})
                         );
@@ -178,6 +212,7 @@ export var LocationContentTransfer = Vue.component("location-content-transfer", 
                                 package_level_id: data.package_level.id,
                                 location_id: data.package_level.location_src.id,
                                 barcode: scanned.text,
+                                confirmation: data.confirmation_required,
                             };
                         } else {
                             endpoint = "set_destination_line";
@@ -185,6 +220,7 @@ export var LocationContentTransfer = Vue.component("location-content-transfer", 
                                 move_line_id: data.move_line.id,
                                 location_id: data.move_line.location_src.id,
                                 barcode: scanned.text,
+                                confirmation: data.confirmation_required,
                                 quantity:
                                     this.state.data.destination_qty ||
                                     data.move_line.quantity,
