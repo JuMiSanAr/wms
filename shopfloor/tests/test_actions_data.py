@@ -326,6 +326,25 @@ class ActionsDataCase(ActionsDataCaseBase):
         }
         self.assertDictEqual(data, expected)
 
+    def test_data_move_line_with_picking(self):
+        move_line = self.move_d.move_line_ids
+        data = self.data.move_line(move_line, with_picking=True)
+        self.assert_schema(self.schema.move_line(with_picking=True), data)
+        expected = {
+            "id": move_line.id,
+            "qty_done": 0.0,
+            "quantity": move_line.product_uom_qty,
+            "product": self._expected_product(self.product_d),
+            "lot": None,
+            "package_src": None,
+            "package_dest": None,
+            "location_src": self._expected_location(move_line.location_id),
+            "location_dest": self._expected_location(move_line.location_dest_id),
+            "picking": self.data.picking(move_line.picking_id),
+            "priority": "",
+        }
+        self.assertDictEqual(data, expected)
+
 
 class ActionsDataCaseBatchPicking(ActionsDataCaseBase, PickingBatchMixin):
     @classmethod
