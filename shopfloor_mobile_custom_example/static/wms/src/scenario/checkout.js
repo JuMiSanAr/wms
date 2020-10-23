@@ -6,6 +6,7 @@
 
 import {translation_registry} from "/shopfloor_mobile/assets/src/services/translation_registry.js";
 import {process_registry} from "/shopfloor_mobile/assets/src/services/process_registry.js";
+import {component_registry} from "/shopfloor_mobile/assets/src/services/component_registry.js";
 
 // Clone the original component
 const DemoCheckout = process_registry.extend("checkout", {
@@ -31,3 +32,13 @@ translation_registry.add(
     "de-DE.shopfloor_demo.checkout.title",
     "Demo alternativer Titel"
 );
+
+const DemoManualSelect = component_registry.extend("manual-select");
+const orig = DemoManualSelect.methods.selected_color_klass;
+DemoManualSelect.methods.selected_color_klass = function(modifier) {
+    let res = orig.call(this, modifier);
+    return res + " demo-override";
+};
+component_registry.replace("manual-select", DemoManualSelect);
+
+console.log("DEMO LOADED!");

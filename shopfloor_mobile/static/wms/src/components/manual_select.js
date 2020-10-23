@@ -4,8 +4,9 @@
  * License AGPL-3.0 or later (http://www.gnu.org/licenses/agpl.html).
  */
 
-/* eslint-disable strict */
-Vue.component("manual-select", {
+import {component_registry} from "../services/component_registry.js";
+
+const ManualSelect = {
     props: {
         records: {
             type: Array,
@@ -311,4 +312,8 @@ Vue.component("manual-select", {
         </v-row>
     </div>
   `,
-});
+};
+
+component_registry.add("manual-select", ManualSelect);
+
+export default ManualSelect;

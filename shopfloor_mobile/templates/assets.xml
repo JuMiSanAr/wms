@@ -121,6 +121,7 @@
         <script
             id="script_component_manual_select"
             t-attf-src="/shopfloor_mobile/assets/src/components/manual_select.js?v=#{app_version}"
+            type="module"
         />
         <script
             id="script_component_input_number_spinner"

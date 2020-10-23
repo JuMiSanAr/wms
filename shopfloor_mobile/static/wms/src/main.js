@@ -9,6 +9,7 @@
 import {router} from "./router.js";
 import {i18n} from "./i18n.js";
 import {GlobalMixin} from "./mixin.js";
+import {component_registry} from "./services/component_registry.js";
 import {process_registry} from "./services/process_registry.js";
 import {color_registry} from "./services/color_registry.js";
 import {Odoo, OdooMocked} from "./services/odoo.js";
@@ -29,12 +30,23 @@ var EventHub = new Vue();
 
 Vue.mixin(GlobalMixin);
 
+let global_components = [];
+_.forEach(component_registry.all(), function(component, key) {
+    Vue.component(key, component.component);
+    global_components.push(key);
+});
+if (!_.isEmpty(global_components))
+    console.debug("Registered global components:", global_components.join(", "));
+
 let app_components = {};
 _.forEach(process_registry.all(), function(process, key) {
     app_components[process.key] = process.component;
 });
-if (app_components.length)
-    console.log("Registered component:", app_components.join(", "));
+if (!_.isEmpty(app_components))
+    console.debug(
+        "Registered process components:",
+        Object.keys(app_components).join(", ")
+    );
 
 const app = new Vue({
     i18n,

@@ -4,15 +4,7 @@
  * License AGPL-3.0 or later (http://www.gnu.org/licenses/agpl.html).
  */
 
-/**
- * A "process" represents a barcode app process (eg: pick goods for reception).
- *
- * A process registry is responsible for collecting all the processes
- * and ease their registration, lookup and override.
- *
- * The router will use this registry to register processes routes.
- */
-export class ProcessRegistry {
+export class ComponentRegistry {
     /**
      * Initialize registry as an empty key array.
      */
@@ -42,17 +34,18 @@ export class ProcessRegistry {
         if (!_.isEmpty(this._data[key]) && !override) {
             throw "Component already existing: " + key;
         }
-        const meta = metadata || {};
-        this._data[key] = {
+        this._data[key] = this._make_component_data(key, component, metadata || {});
+        return this._data[key];
+    }
+    _make_component_data(key, component, meta) {
+        return {
             key: key,
             component: component,
             metadata: meta,
-            path: meta.path || this.make_path(key),
         };
-        return this._data[key];
     }
     /**
-     * Replace an existing process.
+     * Replace an existing component.
      *
      * @param {*} key : the unique key
      * @param {*} component : the component plain Object.
@@ -61,7 +54,7 @@ export class ProcessRegistry {
      * @param {*} metadata : additional information for the process.
      */
     replace(key, component, metadata) {
-        console.log("Replacing process", key);
+        console.log("Replacing component", key);
         return this.add(key, component, metadata, true);
     }
     /**
@@ -102,6 +95,22 @@ export class ProcessRegistry {
      */
     all() {
         return this._data;
+    }
+}
+
+/**
+ * A "process" represents a barcode app process (eg: pick goods for reception).
+ *
+ * A process registry is responsible for collecting all the processes
+ * and ease their registration, lookup and override.
+ *
+ * The router will use this registry to register processes routes.
+ */
+export class ProcessRegistry extends ComponentRegistry {
+    _make_component_data(key, component, meta) {
+        let data = super._make_component_data(key, component, meta);
+        data.path = meta.path || this.make_path(key);
+        return data;
     }
     /**
      * Generate a route path for given process key.
