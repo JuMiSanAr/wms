@@ -68,7 +68,7 @@ class ShopfloorMobileAppMixin(object):
         app_version = self._get_app_version()
         all_icons = []
         url_pattern = url_pattern or (
-            "/shopfloor_mobile_base/assets/"
+            "/shopfloor_mobile/assets/"
             "src/assets/icons/{fname}-{size}.png?{app_version}"
         )
         for size in sizes:
@@ -140,6 +140,7 @@ class ShopfloorMobileAppController(http.Controller, ShopfloorMobileAppMixin):
         # Backward compat redirect (url changed from /scanner to /app)
         return http.redirect_with_hash("/shopfloor_mobile/app", code=301)
 
+    # TODO: do we really need this?
     @http.route(
         ["/shopfloor_mobile/assets/<path:path_fragment>"], auth="public",
     )
