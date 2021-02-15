@@ -16,6 +16,11 @@
                 t-attf-src="/#{mod_name}/static/wms/src/scenario/checkout.js?v=#{get_version(mod_name)}"
                 type="module"
             />
+            <script
+                id="script_scenario_partner"
+                t-attf-src="/#{mod_name}/static/wms/src/scenario/partner.js?v=#{get_version(mod_name)}"
+                type="module"
+            />
         </script>
     </template>
 </odoo>
