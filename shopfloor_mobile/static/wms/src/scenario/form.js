@@ -29,12 +29,14 @@ const Form = {
             usage: "",
             form_name: "",
             record: {},
+            record_type: "",
             form: {},
             user_message: {},
         };
     },
     mounted: function() {
         this.usage = this.$route.params.form_name;
+        this.record_type = this.$route.params.record_type;
         const odoo_params = {
             usage: this.usage,
             profile_id: this.$root.profile.id,
@@ -68,6 +70,11 @@ const Form = {
                         self.$router.back();
                     }, 1500);
                 });
+            let evt_name = "record_updated";
+            if (this.record_type) {
+                evt_name += ":" + this.record_type;
+            }
+            this.$root.trigger(evt_name, {record: this.record, data: form_data}, true);
         },
         _getFormData: function(record_id) {
             this.odoo.call(record_id, {}, "GET").then(this._load_form_data);
@@ -110,7 +117,7 @@ const Form = {
 };
 
 process_registry.add("edit_form", Form, {
-    path: "/form/:form_name/:record_id?",
+    path: "/form/:form_name/:record_type/:record_id?",
 });
 
 export default Form;

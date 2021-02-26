@@ -84,7 +84,7 @@ Vue.component("detail-transfer", {
                         small
                         color="green"
                         title="Edit carrier"
-                        @click="$router.push({'name': 'edit_form', params: {form_name: 'form_edit_stock_picking', record_id: record.id}})"
+                        @click="$router.push({'name': 'edit_form', params: {form_name: 'form_edit', record_type: 'picking', record_id: record.id}})"
                     >
                         <v-icon>mdi-truck-outline</v-icon>
                     </v-btn>

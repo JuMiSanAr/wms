@@ -19,7 +19,7 @@ Vue.component("item-detail-card", {
                     <v-btn icon class="detail-action" link
                             v-if="opts.on_title_action || opts.title_action_field"
                             @click="opts.on_title_action ? opts.on_title_action(): on_detail_action(record, opts.title_action_field)">
-                        <btn-info-icon />
+                        <component :is="opts.on_title_action_icon || 'btn-info-icon'" />
                     </v-btn>
                 </slot>
             </v-card-title>

@@ -51,7 +51,7 @@ const Checkout = {
                     v-if="state.data.picking.carrier"
                     :key="make_state_component_key(['picking-carrier', state.data.picking.id])"
                     :record="state.data.picking.carrier"
-                    :options="{main: true, key_title: 'name', title_icon: 'mdi-truck-outline'}"
+                    :options="carrier_detail_options()"
                     />
                 <detail-picking-select
                     :record="state.data.picking"
@@ -77,7 +77,7 @@ const Checkout = {
                     v-if="state.data.picking.carrier"
                     :key="make_state_component_key(['picking-carrier', state.data.picking.id])"
                     :record="state.data.picking.carrier"
-                    :options="{main: true, key_title: 'name', title_icon: 'mdi-truck-outline'}"
+                    :options="carrier_detail_options()"
                     />
                 <detail-picking-select
                     :record="state.data.picking"
@@ -219,6 +219,18 @@ const Checkout = {
             ];
         },
     },
+    mounted: function() {
+        const self = this;
+        this.$root.event_hub.$off("record_updated:picking");
+        this.$root.event_hub.$on("record_updated:picking", function(form) {
+            const picking = this.current_doc();
+            if (form.changed && form.record.id == picking.id) {
+                // FIXME: we can't know the full info required by the scenario here
+                // we should reload this state from the backend -> HOW???
+                this.state_set_data(XXX, "select_line");
+            }
+        });
+    },
     methods: {
         screen_title: function() {
             if (_.isEmpty(this.current_doc()) || this.state_is("confirm_start"))
@@ -264,6 +276,28 @@ const Checkout = {
                 list_item_component: "picking-select-package-content",
                 list_item_options: {actions: ["action_qty_edit"]},
             };
+        },
+        carrier_detail_options: function() {
+            return {
+                main: true,
+                key_title: "name",
+                title_icon: "mdi-truck-outline",
+                on_title_action: _.partial(
+                    this.action_edit_carrier,
+                    this.state.data.picking
+                ),
+                on_title_action_icon: "btn-edit-icon",
+            };
+        },
+        action_edit_carrier: function(record) {
+            this.$router.push({
+                name: "edit_form",
+                params: {
+                    form_name: "form_edit_stock_picking",
+                    record_type: "picking",
+                    record_id: record.id,
+                },
+            });
         },
     },
     data: function() {

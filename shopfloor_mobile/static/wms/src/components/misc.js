@@ -237,6 +237,16 @@ Vue.component("btn-info-icon", {
     <v-icon :color="color || utils.colors.color_for('info_icon')">mdi-information</v-icon>
 `,
 });
+Vue.component("btn-edit-icon", {
+    props: {
+        color: {
+            type: String,
+        },
+    },
+    template: `
+  <v-icon :color="color">mdi-pencil</v-icon>
+`,
+});
 
 // TODO: move to separated file
 Vue.component("btn-action", {
