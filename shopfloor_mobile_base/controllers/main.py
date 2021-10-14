@@ -18,15 +18,17 @@ class ShopfloorMobileAppMixin(object):
     module_path = os.path.split(os.path.dirname(os.path.realpath(__file__)))[0]
     main_template = "shopfloor_mobile_base.shopfloor_app_main"
 
-    def _load_app(self, demo=False, **kw):
+    def _load_app(self, shopfloor_app=None, demo=False, **kw):
         return http.request.render(
-            self.main_template, self._get_main_template_values(demo=demo, **kw)
+            self.main_template, self._get_main_template_values(shopfloor_app=shopfloor_app, demo=demo, **kw)
         )
 
-    def _get_main_template_values(self, demo=False, **kw):
+    def _get_main_template_values(self, shopfloor_app=None, demo=False, **kw):
+        base_url = "/shopfloor/" + (shopfloor_app.tech_name  + "/" if shopfloor_app else "")
         return dict(
             app_version=self._get_app_version(),
             get_version=self._get_version,
+            app_base_url=base_url,
             demo_mode=demo,
             **kw
         )
@@ -128,12 +130,20 @@ class ShopfloorMobileAppMixin(object):
 
 class ShopfloorMobileAppController(http.Controller, ShopfloorMobileAppMixin):
     @http.route(
-        ["/shopfloor_mobile/app", "/shopfloor_mobile/app/<string:demo>"],
+        [
+            # TODO: get rid of the generic ones
+            # "/shopfloor_mobile/app",
+            # "/shopfloor_mobile/app/<string:demo>",
+            #
+            "/shopfloor_mobile/app/<tech_name(shopfloor.app):shopfloor_app>/",
+            "/shopfloor_mobile/app/<tech_name(shopfloor.app):shopfloor_app>/<string:demo>",
+        ],
         auth="public",
     )
-    def load_app(self, demo=False, **kw):
-        return self._load_app(demo=True if demo else False, **kw)
+    def load_app(self, shopfloor_app=None, demo=False, **kw):
+        return self._load_app(shopfloor_app=shopfloor_app, demo=True if demo else False, **kw)
 
+    # TODO: remove this
     @http.route(
         ["/shopfloormobile/scanner"],
         auth="public",

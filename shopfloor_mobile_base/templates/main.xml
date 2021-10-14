@@ -24,10 +24,13 @@
             <t t-set="html_data" t-value="{'app_version': app_version}" />
             <t t-set="title">Shopfloor WMS app</t>
             <t t-set="head">
+        <!-- TODO: get auth_type from shopfloor.app settings -->
                 <script type="text/javascript">
           var shopfloor_app_info = {
             app_version: "<t t-esc="app_version" />",
             demo_mode: <t t-esc="'true' if demo_mode else 'false'" />,
+            auth_type: "api_key",
+            base_url: "<t t-esc="app_base_url" />",
           };
         </script>
                 <t t-call="shopfloor_mobile_base.shopfloor_app_assets" />
