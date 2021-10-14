@@ -132,9 +132,9 @@ new Vue({
     },
     methods: {
         getOdoo: function (odoo_params) {
-            const params = _.defaults({}, odoo_params, {
-                apikey: this.apikey,
+            let params = _.defaults({}, odoo_params, {
                 debug: this.demo_mode,
+                base_url: this.app_info.base_url,
             });
             let OdooClass = null;
             if (this.demo_mode) {
