@@ -47,6 +47,7 @@ class ShopfloorMobileAppMixin(object):
 
     def _get_main_template_values(self, demo=False, **kw):
         base_url = "/shopfloor/"
+        # TODO: decide about the proper default, now that auth is decoupled.
         auth_type = "api_key"
         return dict(
             app_version=self._get_app_version(),
