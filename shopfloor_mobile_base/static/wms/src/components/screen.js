@@ -198,6 +198,14 @@ Vue.component("nav-items", {
                 <nav-item-action :item="item" />
             </v-list-item-action>
         </v-list-item>
+        <v-list-item
+            :key="'shop-products'"
+            :to="{name: 'products', params: {}}">
+            <v-list-item-content>
+                <nav-item-content :item="{'name': 'Products'}" :show_full_info="false" />
+            </v-list-item-content>
+        </v-list-item>
+    </v-btn>
     </div>
     `,
 });
