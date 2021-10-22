@@ -25,6 +25,41 @@ export class UserAuthHandler extends AuthHandlerMixin {
             headers: {},
         };
     }
+
+    on_login($root, evt, data) {
+        const self = this;
+        evt.preventDefault();
+        // Call odoo application load => set the result in the local storage in json
+        const odoo = $root.getOdoo({base_url: "/session/"});
+        const def = $.Deferred();
+        return odoo
+            .post("auth/login", data, true)
+            .then(function (response) {
+                if (response.error) {
+                    // If there is a need to handle different login error messages
+                    // depending on the response, pass the error as an argument
+                    // to def.reject
+                    return def.reject();
+                }
+                return def.resolve();
+            })
+            .catch(function (error) {
+                return def.reject();
+            });
+    }
+
+    on_logout($root) {
+        const def = $.Deferred();
+        const odoo = $root.getOdoo({base_url: "/session/"});
+        return odoo
+            .post("auth/logout", null, true)
+            .then(function () {
+                return def.resolve();
+            })
+            .catch(function () {
+                return def.reject();
+            });
+    }
 }
 auth_handler_registry.add(new UserAuthHandler("user"));
 
@@ -36,45 +71,14 @@ auth_handler_registry.add(new UserAuthHandler("user"));
 Vue.component("login-user", {
     data: function () {
         return {
-            error: "",
             username: "",
             password: "",
         };
     },
-    // TODO: handle logout throu events and call `/session/auth/logout`
-    mounted: function () {
-        const self = this;
-        // Components can trigger `state:change` on the root
-        // and the current state gets stored into `global_state_key`
-        this.$root.$on("logout:before", function () {});
-    },
     methods: {
         login: function (evt) {
-            const self = this;
-            evt.preventDefault();
-            // Call odoo application load => set the result in the local storage in json
-            this.$parent.error = "";
-            const odoo = this.$root.getOdoo({base_url: "/session/"});
             const data = {login: this.username, password: this.password};
-            odoo.post("auth/login", data, true).then(function (result) {
-                self.$root.trigger("login:after");
-                self.$root
-                    ._loadConfig()
-                    .catch((error) => {
-                        self._handle_invalid_login();
-                    })
-                    .then(() => {
-                        // TODO: shall we do this in $root._loadRoutes?
-                        if (self.$root.authenticated) {
-                            self.$router.push({name: "home"});
-                        } else {
-                            self._handle_invalid_login();
-                        }
-                    });
-            });
-        },
-        _handle_invalid_login() {
-            this.$parent.error = this.$t("screen.login.error.login_invalid");
+            this.$root.login(evt, data);
         },
     },
     template: `
