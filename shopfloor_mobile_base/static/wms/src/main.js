@@ -135,11 +135,6 @@ new Vue({
             let params = _.defaults({}, odoo_params, {
                 debug: this.demo_mode,
                 base_url: this.app_info.base_url,
-                // TODO: move out to its own handler
-                // when full aut decoupling happens
-                headers: {
-                    "API-KEY": this.apikey,
-                },
             });
             let OdooClass = null;
             if (this.demo_mode) {
@@ -229,10 +224,14 @@ new Vue({
         },
         _on_login: function () {
             const self = this;
-            this._loadConfig().then(function () {
-                self.authenticated = true;
+            const stored = this.$storage.get("appconfig");
+            if (!stored) {
+                self._loadConfig().then(function () {
+                    self.trigger("login:success");
+                });
+            } else {
                 self.trigger("login:success");
-            });
+            }
         },
         logout: function () {
             this.trigger("logout:before");

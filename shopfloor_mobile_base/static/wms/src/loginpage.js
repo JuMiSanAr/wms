@@ -27,8 +27,8 @@ export var LoginPage = Vue.component("login-page", {
         this.$root.event_hub.$once("login:success", function () {
             self.$router.push({name: "home"});
         });
-        this.$root.event_hub.$once("login:failure", function () {
-            self._handle_invalid_login();
+        this.$root.event_hub.$once("login:failure", function (error) {
+            self._handle_invalid_login(error);
         });
     },
     computed: {

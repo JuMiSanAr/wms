@@ -27,7 +27,6 @@ export class UserAuthHandler extends AuthHandlerMixin {
     }
 
     on_login($root, evt, data) {
-        const self = this;
         evt.preventDefault();
         // Call odoo application load => set the result in the local storage in json
         const odoo = $root.getOdoo({base_url: "/session/"});
@@ -36,15 +35,12 @@ export class UserAuthHandler extends AuthHandlerMixin {
             .post("auth/login", data, true)
             .then(function (response) {
                 if (response.error) {
-                    // If there is a need to handle different login error messages
-                    // depending on the response, pass the error as an argument
-                    // to def.reject
-                    return def.reject();
+                    return def.reject("screen.login.error.login_invalid");
                 }
                 return def.resolve();
             })
             .catch(function (error) {
-                return def.reject();
+                return def.reject("screen.login.error.login_invalid");
             });
     }
 

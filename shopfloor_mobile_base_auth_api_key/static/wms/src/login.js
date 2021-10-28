@@ -21,7 +21,32 @@ export class ApiKeyAuthHandler extends AuthHandlerMixin {
             },
         };
     }
+
+    on_login($root, evt, data) {
+        evt.preventDefault();
+        // Call odoo application load => set the result in the local storage in json
+        // $root.apikey = data.apikey;
+        $root.apikey = data.apikey;
+        const def = $.Deferred();
+        return $root
+            ._loadConfig()
+            .then(function () {
+                if (!$root.authenticated) {
+                    return def.reject("screen.login.error.api_key_invalid");
+                }
+                return def.resolve();
+            })
+            .catch(function (error) {
+                return def.reject("screen.login.error.api_key_invalid");
+            });
+    }
+
+    on_logout($root) {
+        const def = $.Deferred();
+        return def.resolve();
+    }
 }
+
 auth_handler_registry.add(new ApiKeyAuthHandler("api_key"));
 
 /**
@@ -32,33 +57,13 @@ auth_handler_registry.add(new ApiKeyAuthHandler("api_key"));
 Vue.component("login-api_key", {
     data: function () {
         return {
-            error: "",
             apikey: "",
         };
     },
     methods: {
         login: function (evt) {
-            evt.preventDefault();
-            // Call odoo application load => set the result in the local storage in json
-            this.$parent.error = "";
-            this.$root.apikey = this.apikey;
-            this.$root
-                ._loadConfig()
-                .catch((error) => {
-                    this._handle_invalid_key();
-                })
-                .then(() => {
-                    // TODO: shall we do this in $root._loadRoutes?
-                    if (this.$root.is_authenticated()) {
-                        this.$router.push({name: "home"});
-                    } else {
-                        this._handle_invalid_key();
-                    }
-                });
-        },
-        _handle_invalid_key() {
-            this.error = this.$t("screen.login.error.api_key_invalid");
-            this.$root.apikey = "";
+            const data = {apikey: this.apikey};
+            this.$root.login(evt, data);
         },
     },
     template: `
