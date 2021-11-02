@@ -24,7 +24,9 @@ class ShopfloorProfile(Component):
         domain = self._get_base_search_domain()
         if name_fragment:
             domain.append(("name", "ilike", name_fragment))
-        records = self.env[self._expose_model].search(domain)
+        # Use sudo because we don't care if the user can see profiles or not.
+        # They should always be loaded by the app.
+        records = self.env[self._expose_model].sudo().search(domain)
         return records
 
     def search(self, name_fragment=None):
