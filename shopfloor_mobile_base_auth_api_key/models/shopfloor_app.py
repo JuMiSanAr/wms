@@ -11,8 +11,8 @@ class ShopfloorApp(models.Models):
 
     # TODO: limit auth to specific api keys
 
-    # def _selection_auth_type(self):
-    #     return super()._selection_auth_type() + [("api_key", "API key")]
+    def _selection_auth_type(self):
+        return super()._selection_auth_type() + [("api_key", "API key")]
 
     # # Borrowed from `enddpoint_auth_api_key`: shall we define a mixin?
     # auth_api_key_group_ids = fields.Many2many(
