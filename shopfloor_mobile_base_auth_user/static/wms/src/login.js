@@ -27,6 +27,10 @@ export class UserAuthHandler extends AuthHandlerMixin {
         };
     }
 
+    get_login_component_name($root) {
+        return "login-user";
+    }
+
     on_login($root, evt, data) {
         evt.preventDefault();
         // Call odoo application load => set the result in the local storage in json
@@ -58,12 +62,14 @@ export class UserAuthHandler extends AuthHandlerMixin {
             });
     }
 }
-auth_handler_registry.add(new UserAuthHandler("user"));
+auth_handler_registry.add(new UserAuthHandler("user_endpoint"));
 
 /**
  * Handle loging via user.
  *
  * Conventional name: `login-` + auth_type (from app config)
+ *
+ * The real auth type is `user_endpoint` but `login-user` is better as name.
  */
 Vue.component("login-user", {
     data: function () {
