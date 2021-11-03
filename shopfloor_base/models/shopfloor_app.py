@@ -111,7 +111,7 @@ class ShopfloorApp(models.Model):
         self.env["rest.service.registration"]._prepare_non_decorated_endpoints(service)
 
     def _generate_endpoints(self, service):
-        rest_endpoint_handler = RestController._process_method
+        rest_endpoint_handler = RestController()._process_method
         values = self._generate_endpoints_values(service, self.api_route)
         for vals in values:
             self._generate_endpoints_routes(service, rest_endpoint_handler, vals)
