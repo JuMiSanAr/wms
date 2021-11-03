@@ -16,6 +16,11 @@
                 t-attf-src="/#{mod_name}/static/wms/src/products.js?v=#{get_version(mod_name)}"
                 type="module"
             />
+            <script
+                id="script_page_shop_cart"
+                t-attf-src="/#{mod_name}/static/wms/src/cart.js?v=#{get_version(mod_name)}"
+                type="module"
+            />
         </t>
     </template>
 </odoo>

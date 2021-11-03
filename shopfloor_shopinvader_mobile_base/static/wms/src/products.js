@@ -27,6 +27,8 @@ const Products = {
                 :record="current_product"
                 :options="{main: true, loud: true, fields: product_detail_fields()}"
                 />
+
+            <v-btn v-on:click="add_to_cart">Add to cart</v-btn>
         </Screen>
     `,
     data: function () {
@@ -86,6 +88,19 @@ const Products = {
             this.$router.push({
                 name: "products",
                 params: {identifier: scanned.text},
+            });
+        },
+        add_to_cart: function () {
+            const self = this;
+            const odoo_params = {
+                base_url: this.$root.app_info.shop_api_route,
+                usage: "cart",
+            };
+            const odoo = this.$root.getOdoo(odoo_params);
+            odoo.post("add_item", {
+                params: {product_id: this.current_product.id, item_qty: 1},
+            }).then(function (result) {
+                self.$storage.set("cart", result.data);
             });
         },
     },
