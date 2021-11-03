@@ -19,7 +19,9 @@ class ShopfloorInvaderController(main.RestController):
     ):
         assert collection._name == "shopfloor.app"
         # get shopinvader backend from current app
-        backend = collection.shopinvader_backend_id
+        backend = collection.shopinvader_backend_id.with_context(
+            shopfloor_app=collection.tech_name
+        )
         if collection.shopinvader_tech_user_id:
             # Use a technical user to bypass issues like
             #
