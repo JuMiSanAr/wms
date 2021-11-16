@@ -16,6 +16,7 @@ import {color_registry} from "./services/color_registry.js";
 import {auth_handler_registry} from "./services/auth_handler_registry.js";
 import {Odoo, OdooMocked} from "./services/odoo.js";
 import VueSuperMethod from "./lib/vue-super-call.js";
+import store from "/shopfloor_shopinvader_mobile_base/static/wms/src/store/index.js";
 
 Vue.prototype.$super = VueSuperMethod;
 
@@ -52,6 +53,7 @@ config_registry.add("authenticated", {default: false, reset_on_clear: true});
 
 new Vue({
     i18n,
+    store,
     router: router,
     vuetify: new Vuetify({
         theme: {
