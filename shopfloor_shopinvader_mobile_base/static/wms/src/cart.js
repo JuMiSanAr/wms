@@ -23,24 +23,24 @@ const Cart = {
                     :toProducts="to_products"
                     :key="make_component_key(['cart-list'])"
                 />
-                <v-card>
+                <v-card color="secondary">
                     <v-card-title class="total-cart">{{$t("screen.cart.total_in_cart")}}: {{ cart.amount.total.toFixed(2) }}</v-card-title>
                 </v-card>
-                <v-card>
+                <v-card color="primary">
                     <v-card-title class="to-checkout" v-on:click="checkout">{{$t("screen.cart.checkout")}}</v-card-title>
                 </v-card>
             </v-card>
             <div class="on-checkout" v-if="!has_cart && !checkout_success && !checkout_failure">
                 <h3>The cart is empty</h3>
                 <div>
-                    <btn-action v-on:click="to_products">NEW PURCHASE</btn-action>
+                    <btn-action color="primary" v-on:click="to_products">NEW PURCHASE</btn-action>
                 </div>
             </div>
             <div class="on-checkout" v-if="checkout_success">
                 <h3>Checkout successful!</h3>
                 <div>
-                    <btn-action v-on:click="to_products">NEW PURCHASE</btn-action>
-                    <btn-action v-on:click="to_orders">ORDERS</btn-action>
+                    <btn-action color="primary" v-on:click="to_products">NEW PURCHASE</btn-action>
+                    <btn-action color="primary" v-on:click="to_orders">ORDERS</btn-action>
                 </div>
             </div>
             <h3 v-if="checkout_failure">Something went wrong with checkout...</h3>
