@@ -24,6 +24,7 @@ const Products = {
             />
             <span v-if="filter_text">Searching for "{{filter_text}}"</span>
             <v-btn
+                color="secondary"
                 class="remove-filter"
                 v-if="filter_text"
                 v-on:click="remove_filter"
@@ -45,12 +46,12 @@ const Products = {
                                 src="https://via.placeholder.com/200"
                                 @click="view_product(record)"
                             >
-                                <v-card-title v-text="record.name"></v-card-title>
+                                <v-card-title>{{ record.name }}</v-card-title>
                             </v-img>
-                            <v-card-subtitle>Price: {{record.price.default.value}}</v-card-subtitle>
+                            <v-card-subtitle class="product-price">Price: <span> {{record.price.default.value.toFixed(2)}}</span> </v-card-subtitle>
                             <v-card-actions>
                                 <v-spacer></v-spacer>
-                                <v-btn v-on:click="add_to_cart(record)">
+                                <v-btn color="primary" v-on:click="add_to_cart(record)">
                                     {{$t("screen.products.add_to_cart")}}
                                 </v-btn>
                             </v-card-actions>
@@ -80,16 +81,13 @@ const Products = {
                 >
                 </v-img>
                 <v-card-title>{{current_product.name}}</v-card-title>
-
-                <v-card-subtitle class="pb-0">
-                    Price: {{current_product.price.default.value}}
-                </v-card-subtitle>
-
                 <v-card-text class="text--primary">
                     <div>{{current_product.meta_description || description_lipsum}}</div>
                 </v-card-text>
+                <v-card-subtitle class="product-price">Price: <span> {{current_product.price.default.value.toFixed(2)}}</span> </v-card-subtitle>
                 <v-card-actions>
-                    <v-btn v-on:click="add_to_cart(current_product)">
+                    <v-spacer></v-spacer>
+                    <v-btn color="primary" v-on:click="add_to_cart(current_product)">
                         {{$t("screen.products.add_to_cart")}}
                     </v-btn>
                 </v-card-actions>
@@ -102,7 +100,6 @@ const Products = {
             has_filter: false,
             filter_text: "",
             filtered_products: [],
-
             // TODO: Delete once the backend provides a product description.
             description_lipsum:
                 "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.",
@@ -113,7 +110,6 @@ const Products = {
         if (cart) {
             this.$store.commit("cart_loadCart", cart.value);
         }
-
         const odoo_params = {
             base_url: this.$root.app_info.shop_api_route,
             usage: "products",

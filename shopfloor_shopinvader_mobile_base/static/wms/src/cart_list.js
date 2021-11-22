@@ -31,14 +31,14 @@ Vue.component("cart-list", {
                             <v-btn
                             v-on:click="removeOne(record)"
                             >
-                                <v-icon>
+                                <v-icon color="primary">
                                     mdi-minus
                                 </v-icon>
                             </v-btn>
                             <v-btn
                             v-on:click="addOne(record)"
                             >
-                            <v-icon>
+                            <v-icon color="primary">
                                 mdi-plus
                             </v-icon>
                         </v-btn>
