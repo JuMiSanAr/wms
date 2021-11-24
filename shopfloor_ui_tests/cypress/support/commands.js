@@ -127,14 +127,14 @@ Cypress.Commands.add("sidebar_menu_to", (toClick = "") => {
     cy.get('a[href="#/settings"]');
     cy.get('a[href="#/scan_anything"]');
     cy.get(`a[href="#/${toClick}"]`).click();
-    cy.get("header").click({force: true});
+    cy.get("[data-ref='app-bar'").click({force: true});
 });
 
 Cypress.Commands.add("activate_profile", (profile) => {
     cy.get(`input[value=${profile.id}]`).parent().click();
-    // TODO: Find a better alternative for the below timeout.
-    // It is currently needed to give time for
-    // the backend to complete its processes
-    // before going on with the rest of the test.
-    cy.wait(500);
+});
+
+Cypress.Commands.add("logout", () => {
+    cy.visit(Cypress.config("baseUrl") + "settings");
+    cy.contains("logout", {matchCase: false}).click();
 });
