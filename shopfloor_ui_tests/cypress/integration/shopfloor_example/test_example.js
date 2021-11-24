@@ -12,6 +12,10 @@ describe("Test to make sure that handling different profiles works as expected",
         Cypress.Cookies.preserveOnce("session_id");
     });
 
+    after(() => {
+        cy.logout();
+    });
+
     describe("Selects example profile 'Partner manager'", () => {
         it("Navigates to the profile list and selects the profile", () => {
             const credentials = Cypress.env("credentials");

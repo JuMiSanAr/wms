@@ -2,12 +2,6 @@ describe("Test to make sure that the user can log in and log out", () => {
     // This test covers the standard (username / password) authentication
     // from module shopfloor_mobile_base_auth_user.
 
-    before(() => {
-        // TODO: when we make auth type depend on the shopfloor app backend
-        // we won't need this anymore
-        Cypress.env("auth_type", "user");
-    });
-
     describe("Log in to the Shopfloor app", () => {
         describe("Preparation tests", () => {
             it("Checks that unauthenticated users are redirected to the Login page", () => {
@@ -61,12 +55,13 @@ describe("Test to make sure that the user can log in and log out", () => {
                 });
 
                 cy.wait_for({expect_success: true, request_name: "login"});
-                cy.wait_for({expect_success: true, request_name: "user_config"}).then(
-                    (res) => {
-                        const data = res.response.body.data;
-                        Cypress.env("test_appconfig", {data});
-                    }
-                );
+                cy.wait_for({
+                    expect_success: true,
+                    request_name: "user_config",
+                }).then((res) => {
+                    const data = res.response.body.data;
+                    Cypress.env("test_appconfig", {data});
+                });
             });
         });
     });
@@ -132,6 +127,6 @@ describe("Test to make sure that the user can log in and log out", () => {
 const intercept_login_request = () => {
     cy.intercept({
         method: "POST",
-        url: "*/auth/login",
+        url: "**/auth/login",
     }).as("login");
 };

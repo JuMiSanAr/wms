@@ -4,12 +4,11 @@ describe("Test to make sure that handling different profiles works as expected",
     // their different scenarios.
 
     before(() => {
-        cy.prepare_test_authentication().then(() => {
-            const credentials = Cypress.env("credentials");
+        const credentials = Cypress.env("credentials");
 
-            cy.intercept_user_config_request();
-            cy.login(credentials);
-        });
+        cy.intercept_user_config_request();
+        cy.login(credentials);
+
         cy.wait_for({expect_success: true, request_name: "user_config"}).then((res) => {
             cy.url().should("eq", Cypress.config("baseUrl"));
             cy.get(".text-center").children("button").click();
@@ -22,6 +21,10 @@ describe("Test to make sure that handling different profiles works as expected",
 
     beforeEach(() => {
         Cypress.Cookies.preserveOnce("session_id");
+    });
+
+    after(() => {
+        cy.logout();
     });
 
     // Runs the test twice (once per Demo Profile).

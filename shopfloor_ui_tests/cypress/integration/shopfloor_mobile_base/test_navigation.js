@@ -15,6 +15,10 @@ describe("Test to make sure the navigation through the application works as expe
         });
     });
 
+    after(() => {
+        cy.logout();
+    });
+
     describe("Fake login", () => {
         it("Logs in", () => {
             const auth_type = Cypress.env("auth_type");

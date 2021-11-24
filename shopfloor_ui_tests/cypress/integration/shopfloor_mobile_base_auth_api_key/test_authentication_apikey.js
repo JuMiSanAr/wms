@@ -1,12 +1,6 @@
 describe("Test to make sure that the user can log in and log out", () => {
-    // This test works for the apikey authentication
+    // This test covers the apikey authentication
     // from module shopfloor_mobile_base_auth_api_key.
-
-    before(() => {
-        // TODO: when we make auth type depend on the shopfloor app backend
-        // we won't need this anymore
-        Cypress.env("auth_type", "apikey");
-    });
 
     describe("Log in to the Shopfloor app", () => {
         describe("Preparation tests", () => {
@@ -53,12 +47,13 @@ describe("Test to make sure that the user can log in and log out", () => {
                     cy.login([{name: "apikey", value: credentials.apikey}]);
                 });
 
-                cy.wait_for({expect_success: true, request_name: "user_config"}).then(
-                    (res) => {
-                        const data = res.response.body.data;
-                        Cypress.env("test_appconfig", {data});
-                    }
-                );
+                cy.wait_for({
+                    expect_success: true,
+                    request_name: "user_config",
+                }).then((res) => {
+                    const data = res.response.body.data;
+                    Cypress.env("test_appconfig", {data});
+                });
             });
         });
     });

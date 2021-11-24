@@ -21,5 +21,12 @@ import "./commands";
 
 //// CUSTOM ////
 
-// Clears the session storage at before running the test suite
+// Clears the session storage before running the test suite.
 sessionStorage.clear();
+
+// TODO: when we make auth type depend on the shopfloor app backend
+// we won't need this anymore.
+
+it("Prepares test suite", () => {
+    cy.prepare_test_authentication();
+});
