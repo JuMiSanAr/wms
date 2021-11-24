@@ -13,6 +13,7 @@ const Orders = {
     <Screen :screen_info="screen_info">
         <v-list v-if="_.isEmpty(current_order)">
             <v-list-item
+                :data-id="order.id"
                 v-for="order in orders"
                 :key="order.id"
                 class="order-list"
@@ -34,7 +35,7 @@ const Orders = {
                 <v-icon>mdi-arrow-left</v-icon>
                 <v-toolbar-items class="add-another-product">{{$t("screen.orders.back_to_orders")}}</v-toolbar-items>
             </v-toolbar>
-            <v-card class="order-card">
+            <v-card class="order-card" data-ref="order-detail" :data-id="current_order.id">
                 <div class="order-header">
                     <h1> Order {{ current_order.name }} </h1>
                 </div>

@@ -22,10 +22,10 @@ Vue.component("cart-list", {
 
         <v-list>
             <div v-for="(record, index) in records" class="cart-list">
-                <v-list-item-content>
+                <v-list-item-content data-ref="cart-item" :data-id="record.product.id">
                     <v-list-item-title class="cart-list-title">{{record.product.name}}</v-list-item-title>
                     <v-list-item-content>Unit Price: {{record.product.price.default.value.toFixed(2)}}</v-list-item-content>
-                    <v-list-item class="cart-quantity">Quantity:
+                    <v-list-item data-ref="quantity" class="cart-quantity">Quantity:
                         {{record.qty}}
                         <div class="cart-quantity-button">
                             <v-btn

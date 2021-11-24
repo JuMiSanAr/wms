@@ -39,8 +39,9 @@ const Products = {
                         :cols="12"
                         :sm="6"
                     >
-                        <v-card data-id="{{ record.id }}" >
+                        <v-card :data-id=record.id>
                             <v-img
+                                data-ref="card-image"
                                 class="white--text align-end"
                                 height="200px"
                                 src="https://via.placeholder.com/200"
@@ -51,7 +52,7 @@ const Products = {
                             <v-card-subtitle class="product-price">Price: <span> {{record.price.default.value.toFixed(2)}}</span> </v-card-subtitle>
                             <v-card-actions>
                                 <v-spacer></v-spacer>
-                                <v-btn color="primary" v-on:click="add_to_cart(record)">
+                                <v-btn data-ref="add-to-cart" color="primary" v-on:click="add_to_cart(record)">
                                     {{$t("screen.products.add_to_cart")}}
                                 </v-btn>
                             </v-card-actions>
@@ -63,6 +64,8 @@ const Products = {
             <v-card
             class="mx-auto"
             v-if="!_.isEmpty(current_product)"
+            :data-id="current_product.id"
+            data-ref="product-detail"
             >
                 <v-toolbar
                 color="white"
@@ -87,7 +90,7 @@ const Products = {
                 <v-card-subtitle class="product-price">Price: <span> {{current_product.price.default.value.toFixed(2)}}</span> </v-card-subtitle>
                 <v-card-actions>
                     <v-spacer></v-spacer>
-                    <v-btn color="primary" v-on:click="add_to_cart(current_product)">
+                    <v-btn data-ref="add-to-cart" color="primary" v-on:click="add_to_cart(current_product)">
                         {{$t("screen.products.add_to_cart")}}
                     </v-btn>
                 </v-card-actions>
