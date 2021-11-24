@@ -121,6 +121,6 @@ const check_profile_list = (profiles) => {
 const intercept_menu_request = () => {
     cy.intercept({
         method: "POST",
-        url: "*/user/menu",
+        url: "**/user/menu",
     }).as("profile_data");
 };

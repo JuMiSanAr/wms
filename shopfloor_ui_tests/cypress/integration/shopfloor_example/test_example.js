@@ -117,20 +117,20 @@ const test_partner_card = () => {
 const intercept_partner_list_request = () => {
     cy.intercept({
         method: "GET",
-        url: "*/partner_example/partner_list*",
+        url: "**/partner_example/partner_list*",
     }).as("partner_list");
 };
 
 const intercept_partner_scan_request = () => {
     cy.intercept({
         method: "GET",
-        url: "*/partner_example/scan/*",
+        url: "**/partner_example/scan/*",
     }).as("partner_scan");
 };
 
 const intercept_single_partner_detail_request = () => {
     cy.intercept({
         method: "GET",
-        url: "*/partner_example/detail/*",
+        url: "**/partner_example/detail/*",
     }).as("single_partner_detail");
 };
